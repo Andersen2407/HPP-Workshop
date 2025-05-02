@@ -3,6 +3,7 @@ import time
 from numba import njit, prange
 
 import cupy as cp
+from scipy.fft import dct
 
 import matplotlib.pyplot as plt
 
@@ -15,7 +16,6 @@ def timer(f):                                   # Decorator to calculate executi
         t_end = time.time()
         return result, t_end-t_start            # Return the result AND the execution time
     return wrapper
-
 
 # ======================================= Parallel implementations ======================================
 @timer
@@ -53,6 +53,13 @@ def dct_2d_jit_parallel(block: np.ndarray):
     matrix_y = y_columns
     return matrix_y
 
+@timer
+def dct_cuda_parallel_scipy(block: np.ndarray):
+    # Apply 2D DCT (Type-II) by chaining 1D DCTs
+    dct_rows = dct(block, type=2, norm='ortho', axis=0)
+    dct_cols = dct(dct_rows, type=2, norm='ortho', axis=1)
+
+    return dct_cols
 
 # Uses cuda through library
 @timer
@@ -93,7 +100,25 @@ def dct_cuda_parallel(block: np.ndarray):
 
     return cpu_block
 
+@timer
+def dct_cuda_manual(block: np.ndarray):
+    block_gpu = cp.array(block, dtype=cp.float32)
+    N = block_gpu.shape[0]
 
+    k = cp.arange(N).reshape(-1, 1)
+    n = cp.arange(N).reshape(1, -1)
+
+    # Create normalized DCT-II transform matrix (orthonormal basis)
+    dct_matrix = cp.cos(cp.pi * (2*n + 1) * k / (2*N)) * cp.sqrt(2 / N)
+    dct_matrix[0, :] /= cp.sqrt(2)
+
+    # Apply DCT on rows
+    temp = dct_matrix @ block_gpu
+
+    # Apply DCT on columns
+    result = temp @ dct_matrix.T
+
+    return cp.asnumpy(result)
 # ====================================== Parallel implementations ======================================
 
 
@@ -181,6 +206,8 @@ def dct_2d_numpy_sequential(block: np.ndarray):
 _, _ = dct_2d_jit_sequential( np.ones((1, 1)) )
 _, _ = dct_2d_jit_parallel( np.ones((1, 1)) )
 _, _ = dct_cuda_parallel( np.ones((1, 1)) )
+_, _ = dct_cuda_parallel_scipy( np.ones((1, 1)) )
+_, _ = dct_cuda_manual( np.ones((1, 1)) )
 
 np.random.seed(42)
 block_dimensions = (300, 300)
@@ -196,10 +223,12 @@ t_jit_s = 0
 t_jit_p = 0
 t_s = 0
 t_cp_p = 0
+t_cp_p_scipy = 0
+t_cp_p_manual = 0
 
 for i in range(runs):
-    # result, t = dct_2d_numpy_sequential( block )
-    # t_s += t
+    result, t = dct_2d_numpy_sequential( block )
+    t_s += t
 
     result, t = dct_2d_jit_sequential( block )
     t_jit_s += t
@@ -207,10 +236,18 @@ for i in range(runs):
     result, t = dct_2d_jit_parallel( block )
     t_jit_p += t
 
-    # result, t = dct_cuda_parallel( block )
-    # t_cp_p += t
+    result, t = dct_cuda_parallel( block )
+    t_cp_p += t
 
-# print(f"Sequential DCT time: {t_s / runs} s")
+    result, t = dct_cuda_parallel_scipy( block )
+    t_cp_p_new += t
+
+    result, t = dct_cuda_manual( block )
+    t_cp_p_manual += t
+
+print(f"Sequential DCT time: {t_s / runs} s")
 print(f"JIT Sequential DCT time: {t_jit_s / runs} s")
 print(f"JIT parallel DCT time: {t_jit_p / runs} s")
-# print(f"CuPy parallel DCT time: {t_cp_p / runs} s")
+print(f"CuPy parallel DCT time: {t_cp_p / runs} s")
+print(f"CuPy parallel DCT scipy time: {t_cp_p_scipy / runs} s")
+print(f"CuPy parallel DCT manual time: {t_cp_p_manual / runs} s")
