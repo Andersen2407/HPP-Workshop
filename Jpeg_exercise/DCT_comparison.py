@@ -61,66 +61,28 @@ def dct_cuda_parallel_scipy(block: np.ndarray):
 
     return dct_cols
 
-# Uses cuda through library
 @timer
-def dct_cuda_parallel(block: np.ndarray):
-    block = cp.array(block)     # Allocate on GPU
-
-    N = block.shape[0]  # Assuming block is 8x8
-    # Apply 1D DCT on rows
-    y_rows = cp.zeros_like(block, dtype=np.float32)
-    for row in range(block.shape[0]):
-        # Extract the row
-        x = block[row, :]
-        
-        # For every y_k
-        for k in range(y_rows.shape[1]):
-            # Type-II DCT formula right here! (for one y_k entry)
-            for n in range(y_rows.shape[1]):        # summation happens here
-                y_rows[row, k] += x[n] * cp.cos(cp.pi*k*(2 * n + 1) / (2*N))
-            y_rows[row, k] *= 2
-        # -------------------------------
-    
-    # Apply 1D DCT on columns
-    y_columns = cp.zeros_like(block, dtype=cp.float32)
-    for column in range(block.shape[1]):
-        # Apply DCT formula for each column
-        x = y_rows[:, column]
-        
-        for k in range(N):
-            # Type-II DCT formula right here!
-            for n in range(N):
-                y_columns[k, column] += x[n] * cp.cos(cp.pi*k*(2 * n + 1) / (2*N))
-            y_columns[k, column] *= 2
-        # -------------------------------
-    
-    matrix_y = y_columns
-
-    cpu_block = cp.asnumpy(matrix_y)   # download to RAM from GPU
-
-    return cpu_block
-
-@timer
-def dct_cuda_manual(block: np.ndarray):
+def dct_cupy_parallel(block: np.ndarray):
+    """
+    Uses vectorized operations for DCT (instead of the nested for-loops in dct_cuda_parallel - old version)
+    """
     block_gpu = cp.array(block, dtype=cp.float32)
     N = block_gpu.shape[0]
 
+    # Create DCT coefficient matrix once
     k = cp.arange(N).reshape(-1, 1)
     n = cp.arange(N).reshape(1, -1)
+    dct_matrix = cp.cos(cp.pi * (2*n + 1) * k / (2*N)) * 2
 
-    # Create normalized DCT-II transform matrix (orthonormal basis)
-    dct_matrix = cp.cos(cp.pi * (2*n + 1) * k / (2*N)) * cp.sqrt(2 / N)
-    dct_matrix[0, :] /= cp.sqrt(2)
-
-    # Apply DCT on rows
+    # Apply row-wise DCT
     temp = dct_matrix @ block_gpu
 
-    # Apply DCT on columns
+    # Apply column-wise DCT
     result = temp @ dct_matrix.T
 
     return cp.asnumpy(result)
-# ====================================== Parallel implementations ======================================
 
+# ====================================== Parallel implementations ======================================
 
 
 
@@ -205,16 +167,14 @@ def dct_2d_numpy_sequential(block: np.ndarray):
 # warmup run (compile time)
 _, _ = dct_2d_jit_sequential( np.ones((1, 1)) )
 _, _ = dct_2d_jit_parallel( np.ones((1, 1)) )
-_, _ = dct_cuda_parallel( np.ones((1, 1)) )
+_, _ = dct_cupy_parallel( np.ones((1, 1)) )
 _, _ = dct_cuda_parallel_scipy( np.ones((1, 1)) )
-_, _ = dct_cuda_manual( np.ones((1, 1)) )
 
 np.random.seed(42)
-block_dimensions = (300, 300)
+block_dimensions = (8, 8)
 block = np.random.rand(block_dimensions[0], block_dimensions[1]) * 255
 block = block - 128
 block = np.astype(block, np.int8)
-
 
 
 runs = 1
@@ -224,7 +184,6 @@ t_jit_p = 0
 t_s = 0
 t_cp_p = 0
 t_cp_p_scipy = 0
-t_cp_p_manual = 0
 
 for i in range(runs):
     result, t = dct_2d_numpy_sequential( block )
@@ -236,18 +195,18 @@ for i in range(runs):
     result, t = dct_2d_jit_parallel( block )
     t_jit_p += t
 
-    result, t = dct_cuda_parallel( block )
+    result, t = dct_cupy_parallel( block )
     t_cp_p += t
 
     result, t = dct_cuda_parallel_scipy( block )
-    t_cp_p_new += t
+    t_cp_p_scipy += t
 
-    result, t = dct_cuda_manual( block )
-    t_cp_p_manual += t
 
 print(f"Sequential DCT time: {t_s / runs} s")
+
 print(f"JIT Sequential DCT time: {t_jit_s / runs} s")
 print(f"JIT parallel DCT time: {t_jit_p / runs} s")
+
 print(f"CuPy parallel DCT time: {t_cp_p / runs} s")
+
 print(f"CuPy parallel DCT scipy time: {t_cp_p_scipy / runs} s")
-print(f"CuPy parallel DCT manual time: {t_cp_p_manual / runs} s")
