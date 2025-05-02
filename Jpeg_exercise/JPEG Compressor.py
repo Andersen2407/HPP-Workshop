@@ -1,34 +1,28 @@
-import cv2
 import numpy as np
+import cv2
 
-img = cv2.imread('Jpeg_exercise\picture.jpg', cv2.COLOR_BGR2RGB)
+img = cv2.imread('Jpeg_exercise/picture.jpg', cv2.COLOR_BGR2RGB)
 # cv2.imshow('image', img)
 # cv2.waitKey(0)
 # cv2.waitKey(0)
 print("Img shape: ", img.shape)
 
-
 # 1. Conversion
 # Grayscale conversion
 img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-cv2.imwrite('Jpeg_exercise\gray.png', img)
+cv2.imwrite('Jpeg_exercise/gray.png', img)
 # Center around 0
 img = np.astype(img, np.int16)
 img = img - 128         # Range [0, 255] ==> [-128, 127]
 print("Img shape (GRAY): ", img.shape)
 
 # 2. Block partitioning
-kh = 8
-kw = 8
+kh = 16
+kw = 16
 for h in range(0, img.shape[0], kh):
     for w in range(0, img.shape[1], kw):
         # Copy so its not by reference
         block = img[h:h+kh, w:w+kw].copy()
-        
-        # Dont do it on the last block if it is not 8x8
-        # Bad fix but works for now
-        if block.shape != (8, 8):
-            continue
         
         # 3. Performing the 2D DCT
         def standard_dct_2d(block: np.ndarray):
@@ -77,6 +71,9 @@ for h in range(0, img.shape[0], kh):
                             [24,35,55,64,81,104,113,92],
                             [49,64,78,87,103 ,113 ,120 ,101],
                             [72 ,92 ,95 ,98 ,112 ,100 ,103 ,99]])
+        
+        matrix_Q = cv2.resize(matrix_Q, (kw, kh), interpolation=cv2.INTER_LINEAR)
+
         matrix_Y_Q = np.divide(matrix_Y, matrix_Q)
         matrix_Y_Q = np.round(matrix_Y_Q)
         
@@ -84,22 +81,10 @@ for h in range(0, img.shape[0], kh):
         # Inverse quantization
         recovered_block = cv2.dct(matrix_Y_Q, flags=cv2.DCT_INVERSE)
         recovered_block = np.round(recovered_block / 2)
-        
-        
-        # -------- Debugging --------
-        # from scipy.fftpack import dct
-        # dct_rows = dct(block, axis=1)
-        # dct_2d = dct(dct_rows, axis=0)
-        # print("DCT 2D\n", dct_2d)
-        # print("Matrix Y\n", matrix_Y)
-        # exit(0)
-        
-        
+     
         # Insert the recovered block back into the image
         img[h:h+kh, w:w+kw] = recovered_block
         # print(block[0][:2], matrix_Y_Q[0][:2], recovered_block[0][:2])
-
-
 
 print("Final image shape", img.shape)
 print(img.dtype)
@@ -109,7 +94,7 @@ print(np.max(img), np.min(img))
 img = np.clip(img, 0, 255)  # Ensure values are in the range [0, 255]
 img = np.astype(img, np.uint8)  # Convert back to uint8
 
-cv2.imwrite('Jpeg_exercise\\reconstructed.png', img)
+cv2.imwrite('Jpeg_exercise/reconstructed.png', img)
 
 cv2.imshow('image', img)
 cv2.waitKey(0)
