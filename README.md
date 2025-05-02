@@ -1,6 +1,28 @@
 # HPP-Workshop
 Code for our High Performance Programming Workshop 
 
+
+# Requirements
+`pip install -r requirements.txt`
+
+# BFS
+Located in `BFS_exercise/`
+
+```
+$ python BFS_exercise/Sequential_vs_Parallel_BFS/full_BFS_comparison.py
+```
+Note: As this script runs with the same parameters as showed in the hand-in, it will multiple hours to finish! To reduce the time to compile, change the parameters: `n_nodes = 300` and/or `large_graph_mult = 15`
+
+
+# JPEG compression
+Located in `Jpeg_exercise/`
+
+```
+$ python Jpeg_exercise/JPEG\ Compressor.py
+```
+
+
+
 ## Times for different runs
 ### Intel i7-12700H (14 cores, 20 logical) and 32 GB RAM
 50 runs, 300 nodes:
