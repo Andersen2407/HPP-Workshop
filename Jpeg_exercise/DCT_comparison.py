@@ -153,49 +153,88 @@ def dct_2d_numpy_sequential(block: np.ndarray):
 
 
 
-
-
-
-# warmup run (compile time)
-_, _ = dct_2d_jit_sequential( np.ones((1, 1)) )
-_, _ = dct_2d_jit_parallel( np.ones((1, 1)) )
-_, _ = dct_cupy_parallel( np.ones((1, 1)) )
-
 np.random.seed(42)
-block_dimensions = (4, 4)
-block = np.random.rand(block_dimensions[0], block_dimensions[1]) * 255
-block = block - 128
-block = np.astype(block, np.int8)
 
 
-runs = 1
+################## generate 7 different block sizes for runtime plotting ##################
+block_sizes = [2, 4, 8, 16, 32, 64, 128]
 
-t_jit_s = 0
-t_jit_p = 0
-t_s = 0
-t_cp_p = 0
+blocks = []
+for block_size in block_sizes:
+    block = np.random.rand(block_size, block_size) * 255
+    block = block - 128
+    block = np.astype(block, np.int8)
 
-for i in range(runs):
-    result, t = dct_2d_numpy_sequential( block )
-    t_s += t
-    print(f"numpy:\n {result}")
-
-    result, t = dct_2d_jit_sequential( block )
-    t_jit_s += t
-    print(f"jit seq:\n {result}")
-
-    result, t = dct_2d_jit_parallel( block )
-    t_jit_p += t
-    print(f"jit par:\n {result}")
-
-    result, t = dct_cupy_parallel( block )
-    t_cp_p += t
-    print(f"cupy:\n {result}")
+    blocks.append(block)
+################## generate 9 different block sizes for runtime plotting ##################
 
 
-print(f"Sequential DCT time: {t_s / runs} s")
+################## Run 2D DCT algorithms for each block `runs` times ##################
 
-print(f"JIT Sequential DCT time: {t_jit_s / runs} s")
-print(f"JIT parallel DCT time: {t_jit_p / runs} s")
+runs = 10
 
-print(f"CuPy parallel DCT time: {t_cp_p / runs} s")
+avg_times = {   # use indices as block size references AKA 0th index is blocksize 2x2 etc
+    "numpy_seq": [],
+    "jit_seq": [],
+    "jit_par": [],
+    "cupy_par": [],
+}
+for block in blocks:
+    print(f"\n [+] Running for block shape {block.shape}")
+
+    t_jit_s = 0
+    t_jit_p = 0
+    t_s = 0
+    t_cp_p = 0
+
+    # warmup run (compile time)
+    _, _ = dct_2d_jit_sequential( block )
+    _, _ = dct_2d_jit_parallel( block )
+    _, _ = dct_cupy_parallel( block )
+    
+    for i in range(runs):
+        print(f"\tRun {i + 1} / {runs}")
+        result, t = dct_2d_numpy_sequential( block )
+        t_s += t
+
+        result, t = dct_2d_jit_sequential( block )
+        t_jit_s += t
+
+        result, t = dct_2d_jit_parallel( block )
+        t_jit_p += t
+
+        result, t = dct_cupy_parallel( block )
+        t_cp_p += t
+
+    # print(f"\tSequential DCT time: {t_s / runs} s")
+    avg_times["numpy_seq"].append(t_s / runs)
+
+    # print(f"\tJIT Sequential DCT time: {t_jit_s / runs} s")
+    avg_times["jit_seq"].append(t_jit_s / runs)
+    # print(f"\tJIT parallel DCT time: {t_jit_p / runs} s")
+    avg_times["jit_par"].append(t_jit_p / runs)
+
+    # print(f"\tCuPy parallel DCT time: {t_cp_p / runs} s")
+    avg_times["cupy_par"].append(t_cp_p / runs)
+
+
+################## Run 2D DCT algorithms for each block `runs` times ##################
+
+
+
+# plotting
+
+for key in avg_times:
+    # if key == "numpy_seq" or key == "jit_seq":
+    #     continue
+    plt.plot(block_sizes, np.array(avg_times[key])*1000, label=key)
+    print("x axis", block_sizes)
+    print("y axis", avg_times[key])
+
+plt.title("2D DCT algorithms comparison")
+plt.xlabel("Block size")
+plt.ylabel("Time (ms)")
+plt.ylim(0, max(avg_times["jit_seq"]) * 1.1 * 1000)
+plt.legend()
+plt.grid()
+plt.show()
