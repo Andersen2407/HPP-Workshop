@@ -11,6 +11,7 @@ print("Img shape: ", img.shape)
 # 1. Conversion
 # Grayscale conversion
 img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+cv2.imwrite('Jpeg_exercise\gray.png', img)
 # Center around 0
 img = np.astype(img, np.int16)
 img = img - 128         # Range [0, 255] ==> [-128, 127]
@@ -108,7 +109,7 @@ print(np.max(img), np.min(img))
 img = np.clip(img, 0, 255)  # Ensure values are in the range [0, 255]
 img = np.astype(img, np.uint8)  # Convert back to uint8
 
-cv2.imwrite('Jpeg_exercise\compressed.jpg', img)
+cv2.imwrite('Jpeg_exercise\\reconstructed.png', img)
 
 cv2.imshow('image', img)
 cv2.waitKey(0)

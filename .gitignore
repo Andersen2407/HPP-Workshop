@@ -172,4 +172,5 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
-Jpeg_exercise/compressed.jpg
+Jpeg_exercise/reconstructed.png
+Jpeg_exercise/gray.png
