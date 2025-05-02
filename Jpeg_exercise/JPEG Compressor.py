@@ -6,6 +6,10 @@ img = cv2.imread('Jpeg_exercise/picture.jpg', cv2.COLOR_BGR2RGB)
 # cv2.waitKey(0)
 # cv2.waitKey(0)
 print("Img shape: ", img.shape)
+kh = 16
+kw = 16
+img = cv2.resize(img, (img.shape[1] // kh * kw, img.shape[0] // kh * kw), interpolation=cv2.INTER_LINEAR)
+print("Resized Img shape: ", img.shape)
 
 # 1. Conversion
 # Grayscale conversion
@@ -17,8 +21,6 @@ img = img - 128         # Range [0, 255] ==> [-128, 127]
 print("Img shape (GRAY): ", img.shape)
 
 # 2. Block partitioning
-kh = 16
-kw = 16
 for h in range(0, img.shape[0], kh):
     for w in range(0, img.shape[1], kw):
         # Copy so its not by reference
@@ -70,9 +72,10 @@ for h in range(0, img.shape[0], kh):
                             [18, 22, 37, 56, 68,109,103,77],
                             [24,35,55,64,81,104,113,92],
                             [49,64,78,87,103 ,113 ,120 ,101],
-                            [72 ,92 ,95 ,98 ,112 ,100 ,103 ,99]])
+                            [72 ,92 ,95 ,98 ,112 ,100 ,103 ,99]], dtype=np.float32)
         
         matrix_Q = cv2.resize(matrix_Q, (kw, kh), interpolation=cv2.INTER_LINEAR)
+        #print("Resized Q shape: ", resized_Q.shape)
 
         matrix_Y_Q = np.divide(matrix_Y, matrix_Q)
         matrix_Y_Q = np.round(matrix_Y_Q)
