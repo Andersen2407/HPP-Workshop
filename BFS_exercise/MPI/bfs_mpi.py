@@ -1,5 +1,5 @@
 from mpi4py import MPI
-from igraph_generator import generate_connected_graph_igraph as igenerate_graph  # Import the igraph generation function
+from BFS_exercise.Outdated.igraph_generator import generate_connected_graph_igraph as igenerate_graph  # Import the igraph generation function
 from graph_generator import generate_graph  # Import the graph generation function
 import numpy as np
 import sys
