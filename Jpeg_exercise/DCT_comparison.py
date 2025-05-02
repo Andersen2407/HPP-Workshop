@@ -54,14 +54,6 @@ def dct_2d_jit_parallel(block: np.ndarray):
     return matrix_y
 
 @timer
-def dct_cuda_parallel_scipy(block: np.ndarray):
-    # Apply 2D DCT (Type-II) by chaining 1D DCTs
-    dct_rows = dct(block, type=2, norm='ortho', axis=0)
-    dct_cols = dct(dct_rows, type=2, norm='ortho', axis=1)
-
-    return dct_cols
-
-@timer
 def dct_cupy_parallel(block: np.ndarray):
     """
     Uses vectorized operations for DCT (instead of the nested for-loops in dct_cuda_parallel - old version)
@@ -168,10 +160,9 @@ def dct_2d_numpy_sequential(block: np.ndarray):
 _, _ = dct_2d_jit_sequential( np.ones((1, 1)) )
 _, _ = dct_2d_jit_parallel( np.ones((1, 1)) )
 _, _ = dct_cupy_parallel( np.ones((1, 1)) )
-_, _ = dct_cuda_parallel_scipy( np.ones((1, 1)) )
 
 np.random.seed(42)
-block_dimensions = (8, 8)
+block_dimensions = (4, 4)
 block = np.random.rand(block_dimensions[0], block_dimensions[1]) * 255
 block = block - 128
 block = np.astype(block, np.int8)
@@ -183,23 +174,23 @@ t_jit_s = 0
 t_jit_p = 0
 t_s = 0
 t_cp_p = 0
-t_cp_p_scipy = 0
 
 for i in range(runs):
     result, t = dct_2d_numpy_sequential( block )
     t_s += t
+    print(f"numpy:\n {result}")
 
     result, t = dct_2d_jit_sequential( block )
     t_jit_s += t
+    print(f"jit seq:\n {result}")
 
     result, t = dct_2d_jit_parallel( block )
     t_jit_p += t
+    print(f"jit par:\n {result}")
 
     result, t = dct_cupy_parallel( block )
     t_cp_p += t
-
-    result, t = dct_cuda_parallel_scipy( block )
-    t_cp_p_scipy += t
+    print(f"cupy:\n {result}")
 
 
 print(f"Sequential DCT time: {t_s / runs} s")
@@ -208,5 +199,3 @@ print(f"JIT Sequential DCT time: {t_jit_s / runs} s")
 print(f"JIT parallel DCT time: {t_jit_p / runs} s")
 
 print(f"CuPy parallel DCT time: {t_cp_p / runs} s")
-
-print(f"CuPy parallel DCT scipy time: {t_cp_p_scipy / runs} s")
