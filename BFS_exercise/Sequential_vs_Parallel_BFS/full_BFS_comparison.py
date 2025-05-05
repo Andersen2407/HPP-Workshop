@@ -103,10 +103,6 @@ if __name__ == "__main__":
     runs = 50
     n_nodes = 300
     large_graph_mult = 15       # G_2 will be 15 times larger node-wise
-    n_edges = n_nodes * 5
-
-    # G_1_dict = generate_graph_dict(n_nodes, n_edges)
-    # G_2_dict = generate_graph_dict(n_nodes * large_graph_mult, n_edges * large_graph_mult)
 
     gen_time = time.time()
     G_1_numba = generate_graph_numba(n_nodes, connectivity_pct=0.5)
