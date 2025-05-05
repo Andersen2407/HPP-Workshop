@@ -1,8 +1,40 @@
 from mpi4py import MPI
-from BFS_exercise.Outdated.igraph_generator import generate_connected_graph_igraph as igenerate_graph  # Import the igraph generation function
 from graph_generator import generate_graph  # Import the graph generation function
 import numpy as np
 import sys
+from numba import njit, prange
+from numba.typed import List as NumbaList
+
+@njit(parallel=True)
+def generate_graph_numba(num_nodes: int, connectivity_pct: float = 0.5):
+    """
+    Generates a random directed graph as a Numba-compatible adjacency list:
+    - A NumbaList of NumbaLists containing neighbor indices.
+
+    Parameters:
+        num_nodes (int): Number of nodes.
+        connectivity_pct (float): percentage of num_nodes each node will have as neighbors
+
+    Returns:
+        adj_list (NumbaList[NumbaList[int]]): Numba-compatible adjacency list.
+    """
+    np.random.seed(42)
+
+    # use for picking which nodes to connect as neighbors
+    node_ids = np.arange(num_nodes)
+    neighbors_per_node = int(num_nodes * connectivity_pct) # rounded to int
+    
+    # Initialize empty adjacency list for all nodes
+    adj_list = NumbaList()
+
+    # give all nodes x % connections to all other nodes
+    # use index as node id (index 0 is node 0, etc.)
+    for _ in range(num_nodes):  # loop for all parent nodes
+        neighbors: np.ndarray = np.random.choice(node_ids, size=neighbors_per_node, replace=False)  # dont care if node is its own neighbor. BFS uses `visited` to avoid the self-loop
+        neighbor_list = NumbaList(neighbors)
+        adj_list.append(neighbor_list)
+
+    return adj_list
 
 def partition_graph(graph, size):
     node_to_rank = {}
@@ -60,10 +92,14 @@ def main():
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
     size = comm.Get_size()
+    n_nodes = 300
 
     # Fixed graph for fair benchmarking
     if rank == 0:
-        graph = generate_graph(5000, 25000)
+        numba_graph = generate_graph_numba(n_nodes, connectivity_pct=0.5)
+        graph = {}
+        for node_id, adjlist in enumerate(numba_graph):
+            graph[node_id] = list(adjlist[:])
     else:
         graph = None
 
