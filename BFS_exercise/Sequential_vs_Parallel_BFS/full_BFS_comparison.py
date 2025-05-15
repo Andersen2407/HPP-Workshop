@@ -4,7 +4,7 @@ import time
 from numba.typed import List as NumbaList
 
 from bfs import bfs                                 # Sequential BFS for reference
-from parallel_bfs import bfs_parallel as mp_bfs     # MultiProcessing bfs for reference
+from BFS_exercise.Sequential_vs_Parallel_BFS.parallel_bfs import bfs_parallel as mp_bfs     # MultiProcessing bfs for reference
 from Numba_BFS_comparison import bfs_sequential as numba_sequential_bfs
 
 # -----------------------------------------------

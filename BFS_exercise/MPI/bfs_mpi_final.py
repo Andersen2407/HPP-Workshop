@@ -35,6 +35,8 @@ terminate = None
 if rank == 0:
     # Set node amount
     nodeAmount = 300
+    print(f"Node amount: {nodeAmount}")
+    print(f"Set node amount to 4500 for graph G_2")
 
     # Create the distances array
     distances = -np.ones(nodeAmount, np.int32)

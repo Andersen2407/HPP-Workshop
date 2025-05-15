@@ -4,3 +4,4 @@ cupy
 matplotlib
 mpi4py
 scipy
+opencv-python

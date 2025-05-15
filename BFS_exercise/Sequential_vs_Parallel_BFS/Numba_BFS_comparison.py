@@ -151,7 +151,8 @@ def bfs_sequential(adj_list, start_node_id, n):
 # Main benchmarking section
 # -----------------------------------------------
 if __name__ == "__main__":
-    runs = 50
+    runs = 1
+    print("Adjust the number of runs - set to 1 for testing, 50 for benchmarking")
     n_nodes = 1000
     large_graph_mult = 15       # G_2 will be 15 times larger node-wise
 

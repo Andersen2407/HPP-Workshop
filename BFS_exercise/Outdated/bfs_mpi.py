@@ -1,5 +1,4 @@
 from mpi4py import MPI
-from graph_generator import generate_graph  # Import the graph generation function
 import numpy as np
 import sys
 from numba import njit, prange
